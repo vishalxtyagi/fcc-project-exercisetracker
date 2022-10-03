@@ -46,7 +46,7 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
   try {
     var objectId = ObjectID(req.params._id);
     var description = req.body.description;
-    var duration = req.body.duration;
+    var duration = parseInt(req.body.duration, 10);
     var date = (req.body.date) ? new Date(req.body.date) : new Date();
 
     const user = await User.findByIdAndUpdate(objectId, {
@@ -62,9 +62,9 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
     res.json({
       _id: user._id,
       username: user.username,
-      date: new Date(user.log[0].date).toDateString(),
-      duration: user.log[0].duration,
-      description: user.log[0].description
+      date: date.toDateString(),
+      duration: duration,
+      description: description
     })
   } catch (err) {
     res.json({error: err.message});
@@ -75,19 +75,45 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
 app.get('/api/users/:_id/logs', async (req, res) => {
   try {
     var objectId = ObjectID(req.params._id);
+    var from = (req.query.from) ? new Date(req.query.from) : null;
+    var to = (req.query.to) ? new Date(req.query.to) : null;
+    var limit = parseInt(req.query.limit, 10);
+    
     const user = await User.findById(objectId);
+    const logAggregate = await User.aggregate([
+      {
+        $unwind: {
+          path: "$log"
+        }
+      },
+      {
+        $match: {
+          "log.date": {
+              $lt: (to) ? new Date(to) : new Date(),
+              $gt: new Date(from)
+          }
+        }
+      },
+      {
+        $limit: limit
+      },
+      {
+        $project: {
+          _id: 0,
+          description: "$log.description",
+          duration: {
+            $toInt: "$log.duration"
+          },
+          date: "$log.date",
+        },
+      }
+    ]);
 
     res.json({
       username: user.username,
-      count: user.log.length,
+      count: logAggregate.length,
       _id: user._id,
-      log: _.map(user.log, function(e) {
-        return {
-          description: e.description,
-          duration: e.duration,
-          date: new Date(e.date).toDateString()
-        };
-      })
+      log: logAggregate
     });
   } catch (err) {
     res.json({error: err.message});
