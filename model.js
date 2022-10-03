@@ -7,6 +7,20 @@ const userSchema = new Schema({
     type: String,
     required: true
   },
+  log : [{
+    description: {
+      type: String,
+      required: true
+    },
+    duration: { 
+      type: String,
+      required: true
+    },
+    date: { 
+      type: Date,
+      default: Date.now
+    }
+  }]
 });
 
 const User = mongoose.model("User", userSchema);
