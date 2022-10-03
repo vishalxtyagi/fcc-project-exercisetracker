@@ -95,15 +95,13 @@ app.get('/api/users/:_id/logs', async (req, res) => {
         }
       },
       {
-        $limit: limit || 100
+        $limit: limit || 99999
       },
       {
         $project: {
           _id: 0,
           description: "$log.description",
-          duration: {
-            $toInt: "$log.duration"
-          },
+          duration: "$log.duration",
           date: "$log.date",
         },
       }
@@ -115,7 +113,9 @@ app.get('/api/users/:_id/logs', async (req, res) => {
       _id: user._id,
       log: _.map(logAggregate, function(e) {
         return _.assign(e, {
-          date: e.date.toDateString()
+          description: e.description.toString(),
+          duration: parseInt(e.duration, 10) || 0,
+          date: new Date(e.date).toDateString()
         });
       })
     });
