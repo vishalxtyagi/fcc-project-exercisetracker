@@ -95,7 +95,7 @@ app.get('/api/users/:_id/logs', async (req, res) => {
         }
       },
       {
-        $limit: limit
+        $limit: limit || 100
       },
       {
         $project: {
