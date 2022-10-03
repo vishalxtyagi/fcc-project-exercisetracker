@@ -113,7 +113,11 @@ app.get('/api/users/:_id/logs', async (req, res) => {
       username: user.username,
       count: logAggregate.length,
       _id: user._id,
-      log: logAggregate
+      log: _.map(logAggregate, function(e) {
+        return _.assign(e, {
+          date: e.date.toDateString()
+        });
+      })
     });
   } catch (err) {
     res.json({error: err.message});
