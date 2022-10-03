@@ -89,8 +89,8 @@ app.get('/api/users/:_id/logs', async (req, res) => {
       {
         $match: {
           "log.date": {
-              $lt: (to) ? new Date(to) : new Date(),
-              $gt: new Date(from)
+              $lte: (to) ? new Date(to) : new Date(),
+              $gte: new Date(from)
           }
         }
       },
@@ -107,17 +107,19 @@ app.get('/api/users/:_id/logs', async (req, res) => {
       }
     ]);
 
+    var logs = _.map(logAggregate, function(e) {
+      return _.assign(e, {
+        description: e.description.toString(),
+        duration: parseInt(e.duration, 10) || 0,
+        date: new Date(e.date).toDateString()
+      });
+    });
+
     res.json({
       username: user.username,
       count: logAggregate.length,
       _id: user._id,
-      log: _.map(logAggregate, function(e) {
-        return _.assign(e, {
-          description: e.description.toString(),
-          duration: parseInt(e.duration, 10) || 0,
-          date: new Date(e.date).toDateString()
-        });
-      })
+      log: _.uniqWith(logs, _.isEqual)
     });
   } catch (err) {
     res.json({error: err.message});
