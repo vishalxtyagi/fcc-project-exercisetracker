@@ -75,51 +75,34 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
 app.get('/api/users/:_id/logs', async (req, res) => {
   try {
     var objectId = ObjectID(req.params._id);
-    var from = (req.query.from) ? new Date(req.query.from) : null;
-    var to = (req.query.to) ? new Date(req.query.to) : null;
+    var from = (req.query.from) ? new Date(req.query.from) : new Date('1800-01-01');
+    var to = (req.query.to) ? new Date(req.query.to) : new Date();
     var limit = parseInt(req.query.limit, 10);
     
     const user = await User.findById(objectId);
-    const logAggregate = await User.aggregate([
-      {
-        $unwind: {
-          path: "$log"
-        }
-      },
-      {
-        $match: {
-          "log.date": {
-              $lte: (to) ? new Date(to) : new Date(),
-              $gte: new Date(from)
-          }
-        }
-      },
-      {
-        $limit: limit || 99999
-      },
-      {
-        $project: {
-          _id: 0,
-          description: "$log.description",
-          duration: "$log.duration",
-          date: "$log.date",
-        },
-      }
-    ]);
 
-    var logs = _.map(logAggregate, function(e) {
-      return _.assign(e, {
+    var logs = user.log.filter((item) => {
+      return item.date >= from &&
+             item.date <= to;
+    });
+
+    logs = _.map(logs, function(e) {
+      return {
         description: e.description.toString(),
         duration: parseInt(e.duration, 10) || 0,
         date: new Date(e.date).toDateString()
-      });
+      };
     });
+
+    if (limit) {
+      logs = logs.slice(0, limit);
+    }
 
     res.json({
       username: user.username,
-      count: logAggregate.length,
+      count: logs.length,
       _id: user._id,
-      log: _.uniqWith(logs, _.isEqual)
+      log: logs
     });
   } catch (err) {
     res.json({error: err.message});
